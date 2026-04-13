@@ -19,6 +19,13 @@ const filters = [
   { key: 'queue', label: 'Queued' },
 ] as const;
 
+/** Human-friendly notification type labels */
+function formatType(type: string): string {
+  return type
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function NotificationsCenter() {
   const [filter, setFilter] = useState<'all' | 'unread' | 'queue'>('all');
   const [items, setItems] = useState<NotificationRecord[]>([]);
@@ -53,6 +60,24 @@ export function NotificationsCenter() {
 
   const unreadCount = useMemo(() => items.filter((item) => !item.read_at).length, [items]);
 
+  async function markRead(notificationId: string) {
+    try {
+      await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ notificationId }),
+      });
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === notificationId ? { ...item, read_at: new Date().toISOString() } : item,
+        ),
+      );
+    } catch {
+      // Silent fail — the UI still reflects the optimistic update attempt
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -85,20 +110,34 @@ export function NotificationsCenter() {
       {error ? <div className="rounded-[24px] border border-rose-500/20 bg-rose-500/10 px-5 py-4 text-sm text-rose-200">{error}</div> : null}
       {loading ? <div className="text-sm text-slate-400">Loading notifications...</div> : null}
 
+      {!loading && items.length === 0 ? (
+        <div className="rounded-[24px] border border-slate-800 bg-[var(--color-surface)] px-5 py-8 text-center text-sm text-slate-400">
+          No notifications yet.
+        </div>
+      ) : null}
+
       <div className="grid gap-4">
         {items.map((notification) => (
           <article key={notification.id} className="rounded-[24px] border border-slate-800 bg-[var(--color-surface)] p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">{notification.type}</h2>
+                <h2 className="text-lg font-semibold text-white">{formatType(notification.type)}</h2>
                 <p className="mt-2 text-sm text-slate-300">Channel: {notification.channel}</p>
-                <p className="mt-1 text-sm text-slate-400">User: {notification.user_id}</p>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <span className={`rounded-full px-3 py-1 text-xs font-medium ${notification.read_at ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}`}>
                   {notification.read_at ? 'read' : notification.status}
                 </span>
-                {notification.created_at ? <span className="text-xs uppercase tracking-[0.2em] text-slate-500">{new Date(notification.created_at).toLocaleString()}</span> : null}
+                {!notification.read_at ? (
+                  <button
+                    type="button"
+                    onClick={() => void markRead(notification.id)}
+                    className="text-xs text-slate-400 transition hover:text-white"
+                  >
+                    Mark read
+                  </button>
+                ) : null}
+                {notification.created_at ? <span className="text-xs text-slate-500">{new Date(notification.created_at).toLocaleString()}</span> : null}
               </div>
             </div>
           </article>

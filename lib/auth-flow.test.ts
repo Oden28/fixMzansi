@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildAuthNextPath, mapAuthRoleToDbRole, type AuthRole } from './auth-flow';
+import { buildAuthNextPath, buildAuthScope, mapAuthRoleToDbRole, type AuthRole } from './auth-flow';
 
 describe('mapAuthRoleToDbRole', () => {
   it('maps customer app role to consumer database role', () => {
@@ -13,24 +13,46 @@ describe('mapAuthRoleToDbRole', () => {
 });
 
 describe('buildAuthNextPath', () => {
-  it('routes customer accounts to scoped customer dashboard', () => {
-    expect(buildAuthNextPath({ id: 'user-1', role: 'customer' })).toBe('/dashboard?customerUserId=user-1');
+  it('routes customer accounts to customer dashboard', () => {
+    expect(buildAuthNextPath({ id: 'user-1', role: 'customer' })).toBe('/dashboard');
   });
 
-  it('routes pro accounts to scoped pro dashboard', () => {
-    expect(buildAuthNextPath({ id: 'user-2', role: 'pro' })).toBe('/pro-dashboard?proUserId=user-2');
+  it('routes consumer (persisted) accounts to customer dashboard', () => {
+    expect(buildAuthNextPath({ id: 'user-1', role: 'consumer' })).toBe('/dashboard');
+  });
+
+  it('routes pro accounts to pro dashboard', () => {
+    expect(buildAuthNextPath({ id: 'user-2', role: 'pro' })).toBe('/pro-dashboard');
   });
 
   it('routes admin accounts to admin workspace', () => {
     expect(buildAuthNextPath({ id: 'user-3', role: 'admin' })).toBe('/admin');
   });
 
-  it('accepts persisted consumer role for customers', () => {
-    expect(buildAuthNextPath({ id: 'user-4', role: 'consumer' })).toBe('/dashboard?customerUserId=user-4');
+  it('uses requestedRole as fallback when account role is null', () => {
+    const requestedRole: AuthRole = 'customer';
+    expect(buildAuthNextPath({ id: 'user-5', role: null, requestedRole })).toBe('/dashboard');
   });
 
-  it('uses requested role as fallback when account role is unavailable', () => {
-    const requestedRole: AuthRole = 'customer';
-    expect(buildAuthNextPath({ id: 'user-5', role: null, requestedRole })).toBe('/dashboard?customerUserId=user-5');
+  it('defaults to dashboard when both role and requestedRole are absent', () => {
+    expect(buildAuthNextPath({ id: 'user-6', role: null })).toBe('/dashboard');
+  });
+});
+
+describe('buildAuthScope', () => {
+  it('returns customerUserId for consumer role', () => {
+    expect(buildAuthScope({ id: 'u1', role: 'consumer' })).toEqual({ customerUserId: 'u1' });
+  });
+
+  it('returns proUserId for pro role', () => {
+    expect(buildAuthScope({ id: 'u2', role: 'pro' })).toEqual({ proUserId: 'u2' });
+  });
+
+  it('returns empty scope for admin role', () => {
+    expect(buildAuthScope({ id: 'u3', role: 'admin' })).toEqual({});
+  });
+
+  it('falls back to requestedRole when role is null', () => {
+    expect(buildAuthScope({ id: 'u4', role: null, requestedRole: 'customer' })).toEqual({ customerUserId: 'u4' });
   });
 });

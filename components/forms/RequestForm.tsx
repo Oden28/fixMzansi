@@ -26,10 +26,10 @@ function SubmitButton() {
       {pending ? (
         <span className="flex items-center justify-center gap-2">
           <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          Submitting...
+          Saving task details...
         </span>
       ) : (
-        'Find matching solar pros'
+        'See Taskers & Prices'
       )}
     </button>
   );
@@ -37,6 +37,7 @@ function SubmitButton() {
 
 export function RequestForm() {
   const router = useRouter();
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- useFormState is stable in React 18; migrate to useActionState when upgrading to React 19
   const [state, formAction] = useFormState(createServiceRequestAction, initialState);
 
   useEffect(() => {
@@ -54,75 +55,96 @@ export function RequestForm() {
       className="space-y-6 rounded-2xl border border-slate-800/50 bg-gradient-to-br from-slate-900/40 to-slate-950/60 p-8 backdrop-blur-sm"
       action={formAction}
     >
-      <FormInput
-        id="fullName"
-        name="fullName"
-        label="Full name"
-        placeholder="Your name"
-        required
-      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormSelect
+          id="category"
+          name="category"
+          label="Task category"
+          defaultValue="solar"
+          required
+          options={[
+            { value: 'solar', label: '☀️ Solar installation' },
+            { value: 'battery', label: '🔋 Battery backup' },
+            { value: 'electrical', label: '⚡ Electrical support' },
+            { value: 'maintenance', label: '🔧 Solar maintenance' },
+          ]}
+        />
 
-      <FormInput
-        id="phone"
-        name="phone"
-        label="Phone"
-        placeholder="+27..."
-        type="tel"
-        required
-      />
+        <FormSelect
+          id="taskSize"
+          name="taskSize"
+          label="Task size"
+          defaultValue="medium"
+          options={[
+            { value: 'small', label: 'Small — quick fixes' },
+            { value: 'medium', label: 'Medium — est. 2-3 hrs' },
+            { value: 'large', label: 'Large — est. half/full day' },
+          ]}
+          hint="Used for matching context"
+        />
+      </div>
 
-      <FormInput
-        id="email"
-        name="email"
-        label="Email"
-        placeholder="you@example.com"
-        type="email"
-        required
-      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormInput id="fullName" name="fullName" label="Full name" placeholder="Your name" required />
 
-      <FormSelect
-        id="category"
-        name="category"
-        label="Service type"
-        defaultValue="solar"
-        required
-        options={[
-          { value: 'solar', label: '☀️ Solar installation' },
-          { value: 'battery', label: '🔋 Battery backup' },
-          { value: 'electrical', label: '⚡ Electrical support' },
-          { value: 'maintenance', label: '🔧 Solar maintenance' },
-        ]}
-      />
+        <FormInput id="phone" name="phone" label="Phone" placeholder="+27..." type="tel" required />
+      </div>
 
-      <FormInput
-        id="suburb"
-        name="suburb"
-        label="Suburb or area"
-        placeholder="e.g. Claremont, Camps Bay"
-        required
-        hint="We'll match you with pros in your area"
-      />
+      <FormInput id="email" name="email" label="Email" placeholder="you@example.com" type="email" required />
 
-      <FormSelect
-        id="urgency"
-        name="urgency"
-        label="How urgent?"
-        defaultValue="medium"
-        required
-        options={[
-          { value: 'low', label: 'Low - next month' },
-          { value: 'medium', label: 'Medium - within 2 weeks' },
-          { value: 'high', label: 'High - this week' },
-        ]}
-      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormInput
+          id="suburb"
+          name="suburb"
+          label="Task location (suburb)"
+          placeholder="e.g. Claremont, Camps Bay"
+          required
+          hint="We'll prioritize pros servicing this area"
+        />
+
+        <FormInput
+          id="siteAddress"
+          name="siteAddress"
+          label="Site address"
+          placeholder="Street + number"
+          hint="Primary address where work will happen"
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormInput
+          id="alternateAddress"
+          name="alternateAddress"
+          label="Alternate access/install address (optional)"
+          placeholder="If different from site address"
+          hint="Use when equipment drop-off or access differs"
+        />
+
+        <FormSelect
+          id="urgency"
+          name="urgency"
+          label="When do you need help?"
+          defaultValue="medium"
+          required
+          options={[
+            { value: 'low', label: 'Within a week' },
+            { value: 'medium', label: 'Within 3 days' },
+            { value: 'high', label: 'Today / urgent' },
+          ]}
+        />
+      </div>
+
+      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+        Good news! FixMzansi has verified solar pros available in your area.
+      </div>
 
       <FormTextarea
         id="description"
         name="description"
-        label="Tell us about the work"
-        placeholder="Describe the solar installation, maintenance, or support you need..."
+        label="Tell us the details"
+        placeholder="Describe the work, access notes, equipment details, and anything your pro should know..."
         required
-        hint="The more detail, the better the matches"
+        hint="High-detail requests get better matches"
       />
 
       {state.message ? (

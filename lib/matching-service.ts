@@ -16,8 +16,8 @@ export async function matchAndPersistRequest(supabase: SupabaseClient, requestId
   const { data: pros, error: prosError } = await supabase
     .from('pros')
     .select('id, user_id, trade_category, suburb_service_area, verification_status, rating, response_time_minutes, summary, city')
-    .eq('city', 'Cape Town')
-    .eq('trade_category', request.category);
+    .eq('trade_category', request.category)
+    .ilike('city', 'Cape Town');
 
   if (prosError) throw prosError;
 

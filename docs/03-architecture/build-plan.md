@@ -38,3 +38,17 @@ The app is already beyond a scaffold. The current architecture includes:
 - Add search-first pro discovery interaction on `/pros` with category chips and location/name query filtering
 - Preserve identity scope in navigation links generated from active query params
 - Keep customer/pro journey continuity when moving between directory and profile pages
+
+## New active increment: Taskrabbit-style funnel uplift
+- Implement explicit 4-step booking funnel UX across request, browse, schedule, and confirm surfaces.
+- Add step progress headers and continuity copy so customers always know what comes next.
+- Upgrade matched-pro cards with visible pricing, review count, work photo count, and stronger trust metadata.
+- Introduce browse filters inspired by Taskrabbit (`date`, `time_of_day`, `price_range`, `pro_type`) and keep them client-side for ranking refinement.
+- Add dedicated schedule and confirm pages before booking creation; only create booking after final confirmation.
+- Add/extend tests for new parsing/flow helper logic and run `npm test` + `npm run lint` before shipping.
+
+## New active increment: cross-skill polish system
+- Apply Impeccable-style refine pass (`typeset`, `layout`, `colorize`, `polish`) to tighten hierarchy and reduce visual noise.
+- Apply interaction-design guidance to standardize hover/focus/press states and motion timing by component class.
+- Apply interface-design guidance to enforce one dominant action per screen and clearer data density control.
+- Apply shadcn/ui component conventions (input/button/card semantics) without introducing unnecessary dependency churn.

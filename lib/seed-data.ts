@@ -1,5 +1,6 @@
 import type { ProProfile, ServiceRequest } from './types';
 import { buildFallbackAvatarUrl } from './pro-avatar';
+import { estimateMarketplaceSignals } from './booking-funnel';
 
 export const samplePros: ProProfile[] = [
   {
@@ -12,6 +13,7 @@ export const samplePros: ProProfile[] = [
     responseTimeMinutes: 18,
     summary: 'Premium solar installer for homes and small businesses.',
     profilePhotoUrl: buildFallbackAvatarUrl('SolarWorks Cape'),
+    ...estimateMarketplaceSignals('pro_1'),
   },
   {
     id: 'pro_2',
@@ -23,6 +25,7 @@ export const samplePros: ProProfile[] = [
     responseTimeMinutes: 30,
     summary: 'Battery backup and inverter specialists.',
     profilePhotoUrl: buildFallbackAvatarUrl('Table Mountain Energy'),
+    ...estimateMarketplaceSignals('pro_2'),
   },
   {
     id: 'pro_3',
@@ -34,6 +37,7 @@ export const samplePros: ProProfile[] = [
     responseTimeMinutes: 42,
     summary: 'Solar installations and electrical support.',
     profilePhotoUrl: buildFallbackAvatarUrl('Cape Sun Electric'),
+    ...estimateMarketplaceSignals('pro_3'),
   },
   {
     id: 'pro_4',
@@ -45,6 +49,7 @@ export const samplePros: ProProfile[] = [
     responseTimeMinutes: 24,
     summary: 'Backup power and battery storage installation.',
     profilePhotoUrl: buildFallbackAvatarUrl('Atlantic Battery Installers'),
+    ...estimateMarketplaceSignals('pro_4'),
   },
 ];
 

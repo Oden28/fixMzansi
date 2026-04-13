@@ -3,42 +3,31 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { BookingStatus } from '@/lib/types';
+import { getBookingActionsForViewer, type BookingViewer } from '@/lib/booking-permissions';
 
-type NextAction = {
-  status: BookingStatus;
-  label: string;
-  tone: 'primary' | 'neutral' | 'danger';
-};
-
-const actionMap: Record<BookingStatus, NextAction[]> = {
-  pending: [
-    { status: 'confirmed', label: 'Confirm booking', tone: 'primary' },
-    { status: 'cancelled', label: 'Cancel booking', tone: 'danger' },
-  ],
-  confirmed: [
-    { status: 'in_progress', label: 'Start job', tone: 'primary' },
-    { status: 'cancelled', label: 'Cancel booking', tone: 'danger' },
-  ],
-  in_progress: [
-    { status: 'completed', label: 'Mark complete', tone: 'primary' },
-    { status: 'cancelled', label: 'Cancel booking', tone: 'danger' },
-  ],
-  completed: [],
-  cancelled: [],
-};
-
-const toneClasses: Record<NextAction['tone'], string> = {
-  primary: 'bg-[var(--color-primary)] text-white hover:bg-sky-500',
+const toneClasses = {
+  primary: 'bg-[var(--color-primary)] text-white hover:brightness-110',
   neutral: 'border border-slate-700 text-slate-200 hover:border-slate-500',
   danger: 'border border-rose-900/70 bg-rose-500/10 text-rose-200 hover:border-rose-500/70 hover:bg-rose-500/15',
-};
+} as const;
 
-export function BookingStatusActions({ bookingId, currentStatus }: { bookingId: string; currentStatus: BookingStatus }) {
+export function BookingStatusActions({
+  bookingId,
+  currentStatus,
+  viewerRole,
+}: {
+  bookingId: string;
+  currentStatus: BookingStatus;
+  viewerRole: BookingViewer;
+}) {
   const router = useRouter();
   const [pendingStatus, setPendingStatus] = useState<BookingStatus | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const actions = useMemo(() => actionMap[currentStatus] ?? [], [currentStatus]);
+  const actions = useMemo(
+    () => getBookingActionsForViewer(currentStatus, viewerRole),
+    [currentStatus, viewerRole],
+  );
 
   async function updateStatus(status: BookingStatus) {
     setPendingStatus(status);
@@ -48,6 +37,7 @@ export function BookingStatusActions({ bookingId, currentStatus }: { bookingId: 
       const response = await fetch('/api/bookings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ bookingId, status }),
       });
 
@@ -56,7 +46,7 @@ export function BookingStatusActions({ bookingId, currentStatus }: { bookingId: 
         throw new Error(payload.error ?? 'Unable to update booking');
       }
 
-      setMessage(`Status updated to ${payload.booking.status.replace('_', ' ')}.`);
+      setMessage(null);
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to update booking');
@@ -66,39 +56,41 @@ export function BookingStatusActions({ bookingId, currentStatus }: { bookingId: 
   }
 
   if (actions.length === 0) {
-    return null;
+    return (
+      <p className="text-sm text-slate-400">
+        {viewerRole === 'guest'
+          ? 'Sign in as the customer or assigned pro to manage this booking.'
+          : currentStatus === 'completed'
+            ? 'This job is complete. The customer can leave a review.'
+            : currentStatus === 'cancelled'
+              ? 'This booking was cancelled.'
+              : 'No actions are available for you at this stage.'}
+      </p>
+    );
   }
 
   return (
-    <div className="rounded-[24px] border border-slate-800 bg-[var(--color-surface)] p-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Update status</h2>
-          <p className="mt-1 text-sm text-slate-400">Keep the job lifecycle in sync.</p>
-        </div>
-      </div>
-
-      <div className="mt-5 flex flex-wrap gap-3">
+    <div>
+      <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Next steps</h3>
+      <ul className="mt-4 space-y-4">
         {actions.map((action) => (
-          <button
-            key={action.status}
-            type="button"
-            onClick={() => updateStatus(action.status)}
-            disabled={pendingStatus !== null}
-            className={`touch-target rounded-full px-4 py-2 text-sm font-medium transition duration-[var(--motion-base)] disabled:cursor-not-allowed disabled:opacity-60 ${
-              action.tone === 'primary'
-                ? toneClasses.primary
-                : action.tone === 'danger'
-                  ? toneClasses.danger
-                  : toneClasses.neutral
-            }`}
-          >
-            {pendingStatus === action.status ? 'Updating...' : action.label}
-          </button>
+          <li key={action.nextStatus} className="rounded-2xl border border-slate-800/80 bg-slate-950/30 p-4">
+            <p className="font-medium text-white">{action.label}</p>
+            {action.description ? <p className="mt-1 text-sm text-slate-400">{action.description}</p> : null}
+            <button
+              type="button"
+              onClick={() => updateStatus(action.nextStatus)}
+              disabled={pendingStatus !== null}
+              className={`mt-3 touch-target rounded-full px-4 py-2.5 text-sm font-medium transition duration-[var(--motion-base)] disabled:cursor-not-allowed disabled:opacity-60 ${
+                toneClasses[action.tone]
+              }`}
+            >
+              {pendingStatus === action.nextStatus ? 'Updating…' : action.label}
+            </button>
+          </li>
         ))}
-      </div>
-
-      {message ? <p className="mt-4 text-sm text-slate-300">{message}</p> : null}
+      </ul>
+      {message ? <p className="mt-4 text-sm text-rose-300">{message}</p> : null}
     </div>
   );
 }

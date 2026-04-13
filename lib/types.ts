@@ -16,6 +16,11 @@ export interface ProProfile {
   responseTimeMinutes: number;
   summary: string;
   profilePhotoUrl?: string;
+  hourlyRateZar?: number;
+  reviewCount?: number;
+  completedTasks?: number;
+  workPhotoCount?: number;
+  elite?: boolean;
 }
 
 export interface ServiceRequest {

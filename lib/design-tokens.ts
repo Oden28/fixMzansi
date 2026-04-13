@@ -17,10 +17,19 @@ export const designTokens = {
     fast: '150ms',
     base: '220ms',
     slow: '300ms',
+    easing: {
+      out: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      inOut: 'cubic-bezier(0.65, 0, 0.35, 1)',
+    },
   },
   touch: {
     minTargetPx: 44,
     minGapPx: 8,
+  },
+  radius: {
+    control: '12px',
+    card: '16px',
+    panel: '24px',
   },
 } as const;
 

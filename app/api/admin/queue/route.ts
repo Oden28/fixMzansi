@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase-server';
+import { getApiSession } from '@/lib/api-auth';
 import type { AdminDashboardPayload, AdminQueueItem } from '@/lib/admin';
+
+export const dynamic = 'force-dynamic';
 
 function formatTime(value: string | null) {
   return value ?? new Date().toISOString();
@@ -8,6 +11,11 @@ function formatTime(value: string | null) {
 
 export async function GET() {
   try {
+    const session = await getApiSession();
+    if (!session || session.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required', kpis: [], queue: [] }, { status: 403 });
+    }
+
     const supabase = getSupabaseServerClient();
 
     const [
@@ -88,7 +96,7 @@ export async function GET() {
         title: `${row.type} via ${row.channel}`,
         status: row.status,
         createdAt: formatTime(row.created_at),
-        description: `Queued for user ${row.user_id}`,
+        description: `Queued for delivery`,
         meta: ['Notification queue'],
       })),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -108,6 +116,7 @@ export async function GET() {
     return NextResponse.json(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load operations queue';
-    return NextResponse.json({ error: message, kpis: [], queue: [] }, { status: 500 });
+    console.error('[admin/queue] GET error:', message);
+    return NextResponse.json({ error: 'Failed to load operations queue', kpis: [], queue: [] }, { status: 500 });
   }
 }

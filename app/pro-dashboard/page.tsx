@@ -1,12 +1,26 @@
+import Link from 'next/link';
 import { Container } from '@/components/layout/Container';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { KpiGrid } from '@/components/dashboard/KpiGrid';
 import { getProDashboardData } from '@/lib/dashboard';
 import { requireProWorkspace } from '@/lib/auth-guard';
+import { getSupabaseServerClient } from '@/lib/supabase-server';
 
 export default async function ProDashboardPage() {
   const session = await requireProWorkspace();
   const dashboard = await getProDashboardData(session.userId).catch(() => null);
+
+  const supabase = getSupabaseServerClient();
+  const { data: proRow } = await supabase.from('pros').select('id').eq('user_id', session.userId).maybeSingle();
+  let pendingBookingCount = 0;
+  if (proRow) {
+    const { count } = await supabase
+      .from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('pro_id', proRow.id)
+      .eq('status', 'pending');
+    pendingBookingCount = count ?? 0;
+  }
 
   const kpis = dashboard
     ? [
@@ -32,6 +46,23 @@ export default async function ProDashboardPage() {
           ctaLabel="View directory"
         >
           <KpiGrid cards={kpis} />
+
+          {pendingBookingCount > 0 ? (
+            <div className="mt-8 rounded-[24px] border border-amber-500/30 bg-amber-950/20 px-6 py-5">
+              <p className="text-sm font-semibold text-amber-200">
+                {pendingBookingCount} booking{pendingBookingCount === 1 ? '' : 's'} need your response
+              </p>
+              <p className="mt-2 text-sm text-amber-100/80">
+                Accept or decline so the customer knows whether you are taking the job.
+              </p>
+              <Link
+                href="/bookings"
+                className="mt-4 inline-flex touch-target items-center rounded-full bg-amber-500 px-5 py-2.5 text-sm font-semibold text-amber-950 transition hover:bg-amber-400"
+              >
+                Open bookings →
+              </Link>
+            </div>
+          ) : null}
 
           <section className="mt-8 grid gap-4 lg:grid-cols-2">
             <article className="rounded-[28px] border border-slate-800 bg-[var(--color-surface)] p-6">

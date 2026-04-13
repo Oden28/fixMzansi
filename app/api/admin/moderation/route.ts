@@ -2,9 +2,15 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { getSupabaseServerClient } from '@/lib/supabase-server';
 import { matchAndPersistRequest } from '@/lib/matching-service';
+import { getApiSession, isValidUUID } from '@/lib/api-auth';
 
 export async function POST(request: Request) {
   try {
+    const session = await getApiSession();
+    if (!session || session.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const body = (await request.json()) as {
       entityType?: 'pro' | 'request';
       id?: string;
@@ -13,6 +19,18 @@ export async function POST(request: Request) {
 
     if (!body.entityType || !body.id || !body.action) {
       return NextResponse.json({ error: 'entityType, id, and action are required' }, { status: 400 });
+    }
+
+    if (!['pro', 'request'].includes(body.entityType)) {
+      return NextResponse.json({ error: 'Invalid entity type' }, { status: 400 });
+    }
+
+    if (!['approve', 'reject'].includes(body.action)) {
+      return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    }
+
+    if (!isValidUUID(body.id)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
     const supabase = getSupabaseServerClient();
@@ -61,6 +79,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, entityType: 'request', id: body.id, status: requestStatus });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to process moderation action';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[admin/moderation] POST error:', message);
+    return NextResponse.json({ error: 'Failed to process moderation action' }, { status: 500 });
   }
 }

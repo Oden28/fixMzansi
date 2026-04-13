@@ -4,6 +4,7 @@ import { validateServiceRequest } from '@/lib/validation';
 import type { CreateServiceRequestInput } from '@/lib/db';
 import { getSupabaseServerClient } from '@/lib/supabase-server';
 import { matchAndPersistRequest } from '@/lib/matching-service';
+import { getServerSession } from '@/lib/server-session';
 
 export type RequestFormState = {
   success: boolean;
@@ -38,69 +39,95 @@ export async function createServiceRequestAction(
 
   try {
     const supabase = getSupabaseServerClient();
+    const session = await getServerSession();
 
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', input.email || '')
-      .maybeSingle();
+    // If authenticated, use the session user_id; otherwise create a guest user
+    let userId: string;
 
-    const userId = existingUser?.id ?? (await createConsumerUser(supabase, input)).id;
+    if (session) {
+      userId = session.userId;
+    } else {
+      // Create or find guest user by email
+      const email = input.email?.trim().toLowerCase();
+      if (email) {
+        const { data: existing } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
 
-    const { data: request, error: requestError } = await supabase
+        if (existing) {
+          userId = existing.id;
+        } else {
+          const { data: newUser, error: userError } = await supabase
+            .from('users')
+            .insert({
+              full_name: input.fullName.trim(),
+              email,
+              phone: input.phone?.trim() || null,
+              role: 'consumer',
+            })
+            .select('id')
+            .single();
+          if (userError || !newUser) throw userError ?? new Error('Failed to create user');
+          userId = newUser.id;
+        }
+      } else {
+        const { data: newUser, error: userError } = await supabase
+          .from('users')
+          .insert({
+            full_name: input.fullName.trim(),
+            phone: input.phone?.trim() || null,
+            role: 'consumer',
+          })
+          .select('id')
+          .single();
+        if (userError || !newUser) throw userError ?? new Error('Failed to create user');
+        userId = newUser.id;
+      }
+    }
+
+    const { data: request, error: insertError } = await supabase
       .from('service_requests')
       .insert({
         user_id: userId,
         category: input.category,
-        suburb: input.suburb,
-        description: input.description,
+        suburb: input.suburb.trim(),
+        description: input.description.trim(),
         urgency: input.urgency,
         status: 'submitted',
       })
       .select('id')
       .single();
 
-    if (requestError || !request) {
-      throw requestError ?? new Error('Failed to create service request');
-    }
+    if (insertError || !request) throw insertError ?? new Error('Failed to create request');
 
-    await matchAndPersistRequest(supabase, request.id);
+    // Must await: in serverless (Vercel, etc.) the invocation freezes after the action returns,
+    // so fire-and-forget matching often never runs — users see no pros and status stays submitted.
+    let matchingNote: string | null = null;
+    try {
+      await matchAndPersistRequest(supabase, request.id);
+    } catch (matchErr) {
+      console.error('[requests/actions] matching error:', matchErr);
+      matchingNote =
+        matchErr instanceof Error ? matchErr.message : 'Matching could not complete. Open the request and refresh, or contact support.';
+    }
 
     return {
       success: true,
-      message: 'Request submitted. We matched you with trusted solar pros in Cape Town.',
+      message: matchingNote
+        ? `Request saved. ${matchingNote}`
+        : 'Request created. Matched pros are ready on the next screen.',
       errors: [],
       requestId: request.id,
       customerUserId: userId,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Something went wrong while submitting your request.';
+    console.error('[requests/actions] error:', error);
     return {
       success: false,
-      message,
-      errors: [message],
+      message: 'Failed to create request. Please try again.',
+      errors: [],
     };
   }
-}
-
-async function createConsumerUser(
-  supabase: ReturnType<typeof getSupabaseServerClient>,
-  input: CreateServiceRequestInput,
-) {
-  const { data, error } = await supabase
-    .from('users')
-    .insert({
-      full_name: input.fullName,
-      phone: input.phone || null,
-      email: input.email || null,
-      role: 'consumer',
-    })
-    .select('id')
-    .single();
-
-  if (error || !data) {
-    throw error ?? new Error('Failed to create consumer user');
-  }
-
-  return data;
 }

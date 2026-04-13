@@ -1,60 +1,54 @@
 import { Container } from '@/components/layout/Container';
 import { RequestForm } from '@/components/forms/RequestForm';
+import { TaskFlowSteps } from '@/components/booking/TaskFlowSteps';
+import { extractIdentityScopeFromRecord } from '@/lib/identity-scope';
 
-export default function RequestsPage() {
+export default async function RequestsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const scope = extractIdentityScopeFromRecord((await searchParams) ?? {});
+
   return (
-    <main className="min-h-screen bg-slate-950 py-16 text-slate-100">
+    <main className="min-h-screen bg-slate-950 py-10 text-slate-100 md:py-14">
       <Container>
-        <div className="grid gap-12 lg:grid-cols-[1fr_1.2fr]">
-          {/* Left column: info */}
-          <div className="space-y-8">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-emerald-300">Get matched</p>
-              <h1 className="mt-3 text-4xl font-bold text-white">Request a solar professional</h1>
-              <p className="mt-4 text-lg text-slate-300 leading-relaxed">
-                Tell us what you need. We&apos;ll quickly match you with verified Cape Town solar pros who are available and qualified for your job.
-              </p>
-            </div>
+        <div className="space-y-8">
+          <TaskFlowSteps current={1} scope={scope} />
 
-            <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-emerald-950/5 p-6 backdrop-blur">
-              <h2 className="font-semibold text-white flex items-center gap-2">
-                <span className="text-2xl">✓</span>
-                What happens next
-              </h2>
-              <ol className="mt-6 space-y-4">
-                {[
-                  { step: '1', title: 'Submit request', desc: 'Describe your solar work needs' },
-                  { step: '2', title: 'Instant matching', desc: 'Get matched with top-rated local pros' },
-                  { step: '3', title: 'Compare & choose', desc: 'Review quotes and pick your pro' },
-                  { step: '4', title: 'Book & track', desc: 'Confirm details and track the job live' },
-                ].map((item) => (
-                  <li key={item.step} className="flex gap-4">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20 font-semibold text-emerald-400 flex-shrink-0">
-                      {item.step}
-                    </div>
-                    <div>
-                      <p className="font-medium text-white">{item.title}</p>
-                      <p className="text-sm text-slate-400">{item.desc}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
+          <div className="grid gap-8 lg:grid-cols-[1fr_1.25fr] lg:items-start">
+            <section className="space-y-6">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">1: Describe your task</p>
+                <h1 className="mt-2 text-3xl font-semibold text-white md:text-4xl">Tell us about your solar job in Cape Town</h1>
+                <p className="mt-3 max-w-xl text-slate-300">
+                  We use these details to show verified pros who fit your task, area, and timeline. You can still adjust details with your pro after booking.
+                </p>
+              </div>
 
-            <div className="space-y-3  border-t border-slate-800 pt-8">
-              <h3 className="font-semibold text-white">Tips for best matches:</h3>
-              <ul className="space-y-2 text-sm text-slate-300">
-                <li>✓ Be specific about your work type and scope</li>
-                <li>✓ Include photos of your roof or installation area if possible</li>
-                <li>✓ Set a realistic timeline for urgency</li>
-                <li>✓ Provide accurate location details</li>
-              </ul>
-            </div>
-          </div>
+              <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-950/10 p-5">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-200">What happens next</h2>
+                <ol className="mt-4 space-y-3 text-sm text-slate-200">
+                  <li>2. Browse pros and compare price, reviews, and response speed.</li>
+                  <li>3. Choose your preferred date and start time.</li>
+                  <li>4. Confirm details, deposit policy, and book securely.</li>
+                </ol>
+              </div>
 
-          {/* Right column: form */}
-          <div>
-            <RequestForm />
+              <div className="rounded-2xl border border-slate-800 bg-[var(--color-surface)] p-5">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Task quality tips</h3>
+                <ul className="mt-4 space-y-2 text-sm text-slate-300">
+                  <li>• Add the exact suburb and unit/building access notes.</li>
+                  <li>• Mention system size, inverter, or battery model if known.</li>
+                  <li>• Include constraints (stairs, roof access, parking).</li>
+                  <li>• State urgency honestly to improve availability matching.</li>
+                </ul>
+              </div>
+            </section>
+
+            <section>
+              <RequestForm />
+            </section>
           </div>
         </div>
       </Container>

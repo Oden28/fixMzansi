@@ -1,4 +1,5 @@
 import React from 'react';
+import { getComponentClasses } from '@/lib/ui-system';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
@@ -9,20 +10,17 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants = {
-  primary:
-    'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:shadow-lg hover:shadow-emerald-950/40 hover:scale-105 active:scale-95',
-  secondary:
-    'bg-gradient-to-r from-sky-500 to-sky-600 text-white hover:shadow-lg hover:shadow-sky-950/40 hover:scale-105 active:scale-95',
-  outline:
-    'border-2 border-slate-700 text-white hover:border-slate-500 hover:bg-slate-900/50 active:bg-slate-900',
+  primary: 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:brightness-110 active:scale-[0.99]',
+  secondary: 'bg-gradient-to-r from-sky-500 to-sky-600 text-white hover:brightness-110 active:scale-[0.99]',
+  outline: 'border border-slate-700 text-white hover:border-slate-500 hover:bg-slate-900/50 active:bg-slate-900',
   ghost: 'text-slate-300 hover:text-white hover:bg-slate-900/30 active:bg-slate-900/50',
-  danger: 'bg-rose-600 text-white hover:bg-rose-700 hover:shadow-lg hover:shadow-rose-950/40 active:scale-95',
+  danger: 'bg-rose-600 text-white hover:bg-rose-700 active:scale-[0.99]',
 };
 
 const sizes = {
   sm: 'px-3 py-2 text-sm',
-  md: 'px-6 py-3 text-base',
-  lg: 'px-8 py-4 text-lg',
+  md: 'px-5 py-2.5 text-sm',
+  lg: 'px-8 py-4 text-base',
 };
 
 export function Button({
@@ -38,7 +36,7 @@ export function Button({
   return (
     <button
       disabled={disabled || isLoading}
-      className={`touch-target inline-flex items-center justify-center gap-2 rounded-xl font-semibold shadow-lg transition-all duration-[var(--motion-base)] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`${getComponentClasses('button')} gap-2 shadow-lg shadow-black/20 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >
       {isLoading ? (

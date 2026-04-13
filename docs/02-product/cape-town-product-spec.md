@@ -51,6 +51,26 @@ It helps users request work, discover verified pros, book jobs, monitor progress
 - Pricing and outcome clarity should appear before checkout actions (request, match, book).
 - Pro directory UX should support quick filtering by category and suburb without leaving the page.
 
+## Taskrabbit-inspired booking funnel (implementation baseline)
+- FixMzansi uses a 4-step booking funnel with explicit numbered stages:
+  1. `Describe your task` — location, job options, and detailed brief
+  2. `Browse pros & prices` — ranked provider cards with pricing and trust signals
+  3. `Choose date & time` — selected pro availability and scheduling capture
+  4. `Confirm details` — payment/deposit messaging, price breakdown, and final confirmation CTA
+- The request creation page (`/requests`) should present the step-1 mental model clearly, including category, location, task-size estimate, urgency, and a high-context task description.
+- The request detail page (`/requests/[id]`) should behave as step 2, with filter controls (date window, time-of-day preference, price range, and pro type) and a clear `Select & Continue` action per matched pro.
+- Step 3 and step 4 should be separate focused views to lower cognitive load and preserve user confidence before booking.
+- Confirmation copy must explain deposit behavior and cancellation timing in plain language before final booking.
+- The final CTA should emphasize post-booking continuity (chat/updates/changes) instead of implying a rigid irreversible action.
+
+## Video-validated UX details (Taskrabbit parity cues)
+- The marketplace hero should expose category chips immediately under search intent, not behind deeper navigation.
+- Step 1 must support multi-location tasks where applicable (start/end address pattern for moving-style jobs); for solar jobs this maps to site address + optional alternate access/install address.
+- Step 1 should include a reassuring availability message after location capture ("Good news — available in your area") to reduce uncertainty before the next click.
+- Step 2 provider cards should surface trust metadata in a predictable order: hourly rate -> rating/reviews -> tasks completed -> work photos -> capability notes.
+- Step 3 should combine calendar + visible time windows in one frame to preserve momentum.
+- Login interruption during funnel should preserve return context and continue users where they left off after auth.
+
 ## Product principles
 - Trust before volume
 - Cape Town first, solar first
@@ -66,6 +86,14 @@ It helps users request work, discover verified pros, book jobs, monitor progress
 - Typography baseline: accessible sans stack optimized for readability and high contrast
 - Motion baseline: 150-300ms transitions; respect `prefers-reduced-motion`
 - Navigation baseline: predictable route transitions and persistent context (`customerUserId`, `proUserId`) across deep links
+
+## Cross-skill UI quality contract (Impeccable + UI Skills + shadcn patterns)
+- Interface intent first: every primary screen must communicate one dominant action above the fold (request, compare, schedule, confirm).
+- Typography discipline: tighten headline/body rhythm and avoid generic equal-weight blocks; hierarchy should remain obvious at a glance.
+- Purposeful motion only: interaction transitions communicate feedback/orientation (hover, focus, press, enter/exit) and avoid decorative animation.
+- Control consistency: inputs, selects, textareas, and buttons share a unified size/radius/focus/disabled system across pages.
+- State clarity: loading, empty, success, and error states should always preserve layout and communicate next action.
+- Accessibility baseline: keyboard-visible focus, reduced-motion support, and touch-safe targets remain mandatory for all interactive controls.
 
 ## Authentication and onboarding requirements
 - Login and register must be coherent variants of the same flow: mode switch + role selection + form completion.

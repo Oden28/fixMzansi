@@ -1,6 +1,7 @@
 import { getSupabaseServerClient } from './supabase-server';
 import { samplePros } from './seed-data';
 import type { ProProfile } from './types';
+import { estimateMarketplaceSignals } from './booking-funnel';
 
 type ProRow = {
   id: string;
@@ -45,7 +46,9 @@ export async function getFeaturedPros(limit = 4): Promise<ProProfile[]> {
     const userById = new Map((users ?? []).map((user) => [user.id, user.full_name]));
 
     return proRows
-      .map((pro) => ({
+      .map((pro) => {
+        const signals = estimateMarketplaceSignals(pro.id);
+        return {
         id: pro.id,
         name: userById.get(pro.user_id) ?? pro.user_id,
         tradeCategory: pro.trade_category,
@@ -55,7 +58,13 @@ export async function getFeaturedPros(limit = 4): Promise<ProProfile[]> {
         responseTimeMinutes: Number(pro.response_time_minutes),
         summary: pro.summary,
         profilePhotoUrl: pro.profile_photo_url ?? undefined,
-      }))
+        hourlyRateZar: signals.hourlyRateZar,
+        reviewCount: signals.reviewCount,
+        completedTasks: signals.completedTasks,
+        workPhotoCount: signals.workPhotoCount,
+        elite: signals.isElite,
+      };
+      })
       .sort((a, b) => {
         const priorityDiff = verificationPriority(a.verificationStatus) - verificationPriority(b.verificationStatus);
         if (priorityDiff !== 0) return priorityDiff;

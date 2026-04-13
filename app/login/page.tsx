@@ -2,12 +2,13 @@ import { Container } from '@/components/layout/Container';
 import { AuthFlowForm } from '@/components/auth/AuthFlowForm';
 import { safeInternalPath } from '@/lib/safe-redirect';
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const nextRaw = searchParams?.next;
+  const params = await searchParams;
+  const nextRaw = params?.next;
   const redirectHint = safeInternalPath(typeof nextRaw === 'string' ? nextRaw : undefined);
 
   return (

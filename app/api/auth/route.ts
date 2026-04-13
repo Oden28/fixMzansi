@@ -12,6 +12,7 @@ import { getProProfilePhotoUrl } from '@/lib/pro-avatar';
 import { hashPassword, verifyPassword } from '@/lib/password';
 import { signSession, sessionCookieOptions, FM_SESSION_COOKIE } from '@/lib/session-cookie';
 import { getDemoAuthPassword } from '@/lib/demo-auth-password';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 type AuthPayload = {
   email?: string;
@@ -28,13 +29,41 @@ type UserRow = {
   password_hash: string | null;
 };
 
+const AUTH_ROLES: AuthRole[] = ['customer', 'pro', 'admin'];
+const AUTH_MODES = ['login', 'register'] as const;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_EMAIL_LEN = 254;
+const MAX_NAME_LEN = 120;
+const MAX_PASSWORD_LEN = 128;
+
 function validatePayload(payload: AuthPayload): string | null {
   if (!payload.email || !payload.password || !payload.role || !payload.mode) {
     return 'email, password, role, and mode are required';
   }
 
+  if (!AUTH_ROLES.includes(payload.role)) {
+    return 'Invalid role';
+  }
+
+  if (!AUTH_MODES.includes(payload.mode)) {
+    return 'Invalid mode';
+  }
+
+  const email = payload.email.trim();
+  if (email.length > MAX_EMAIL_LEN || !EMAIL_RE.test(email)) {
+    return 'Please enter a valid email address';
+  }
+
   if (payload.password.length < 8) {
     return 'Password must be at least 8 characters';
+  }
+
+  if (payload.password.length > MAX_PASSWORD_LEN) {
+    return 'Password is too long';
+  }
+
+  if (payload.fullName && payload.fullName.trim().length > MAX_NAME_LEN) {
+    return 'Full name is too long';
   }
 
   return null;
@@ -54,6 +83,19 @@ function attachSessionCookie(res: NextResponse, account: Pick<UserRow, 'id' | 'e
 }
 
 export async function POST(request: Request) {
+  // Rate limit: 10 auth attempts per IP per 60s
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`auth:${ip}`, { maxRequests: 10, windowSec: 60 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many attempts. Please try again later.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(rl.resetInSec) },
+      },
+    );
+  }
+
   try {
     const body = (await request.json()) as AuthPayload;
     const validationError = validatePayload(body);
@@ -65,7 +107,7 @@ export async function POST(request: Request) {
     const email = body.email!.trim().toLowerCase();
     const requestedRole = body.role!;
     const mode = body.mode!;
-    const fullName = body.fullName?.trim() || `${requestedRole.charAt(0).toUpperCase()}${requestedRole.slice(1)} Demo`;
+    const fullName = body.fullName?.trim().slice(0, MAX_NAME_LEN) || `${requestedRole.charAt(0).toUpperCase()}${requestedRole.slice(1)} Demo`;
 
     const supabase = getSupabaseServerClient();
 
@@ -135,6 +177,7 @@ export async function POST(request: Request) {
       return res;
     }
 
+    // ── Login flow ──
     const { data: account, error: fetchError } = await supabase
       .from('users')
       .select('id, email, role, password_hash')
@@ -144,13 +187,14 @@ export async function POST(request: Request) {
     if (fetchError) throw fetchError;
 
     if (!account) {
-      return NextResponse.json({ error: 'Account not found. Please register first.' }, { status: 404 });
+      // Generic message to prevent user enumeration
+      return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
 
     const row = account as UserRow;
 
     if (!verifyStoredCredential(row, body.password!)) {
-      return NextResponse.json({ error: 'Incorrect password.' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
 
     if (!requestedRoleMatchesDb(requestedRole, row.role)) {
@@ -182,6 +226,7 @@ export async function POST(request: Request) {
     return res;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Authentication failed';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[auth] POST error:', message);
+    return NextResponse.json({ error: 'Authentication failed' }, { status: 500 });
   }
 }

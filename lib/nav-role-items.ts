@@ -36,6 +36,7 @@ export function getSidebarSectionsForRole(role: AppSession['role']): SidebarNavS
         title: 'Pro workspace',
         items: [
           { href: '/pro-dashboard', label: 'Overview' },
+          { href: '/bookings', label: 'Bookings' },
           { href: '/notifications', label: 'Notifications' },
         ],
       },

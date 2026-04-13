@@ -13,6 +13,7 @@ export function ReviewForm({ bookingId, proId }: { bookingId: string; proId: str
       const response = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ bookingId, proId, rating, text }),
       });
 

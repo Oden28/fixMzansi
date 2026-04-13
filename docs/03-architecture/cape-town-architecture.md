@@ -52,5 +52,15 @@
 - Navigation links should use Next.js `Link` for internal routes to keep transitions and prefetch behavior consistent.
 - Motion defaults must remain in the 150-300ms range and respect reduced-motion preferences.
 
+## Booking funnel architecture (Taskrabbit-inspired)
+- The customer booking flow is implemented as a multi-route state machine with explicit step ownership:
+  - Step 1 (`/requests`) captures task intent and normalized request fields.
+  - Step 2 (`/requests/[id]`) handles ranked match browsing and pro selection.
+  - Step 3 (`/bookings/schedule`) captures schedule preferences before booking creation.
+  - Step 4 (`/bookings/confirm`) confirms payment/deposit copy and submits final booking.
+- Step transitions pass state through signed-in session context or validated query parameters, then re-validate against persisted request ownership on the server.
+- Price/availability filter inputs are treated as UX-level narrowing controls and must not bypass server-side authorization for booking creation.
+- Final booking creation remains in `POST /api/bookings`; schedule/confirm steps are orchestration UI that prepare validated payloads.
+
 ## Important architecture rule
 The schema and the UI must agree on state names. If read state, review moderation, booking lifecycle, identity scoping, auth role mapping, or design-system tokens change, the docs and app must be updated together.
